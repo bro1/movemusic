@@ -1,0 +1,3 @@
+Banshee music player does not let user to move files while preserving the rating and other information
+
+This project lets user move a file or a directory and also updates the location of the files in Banshee database.
