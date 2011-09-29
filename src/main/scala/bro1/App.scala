@@ -16,9 +16,13 @@ object App {
   def main(args: Array[String]) {
         
     if (ArgumentValidator.validates((args))) {
-      FileUtils.create(args)
-      val listFiles = Lister.getSourceTargetFilePairs(args)      
+      
+      ArgumentsAndActions.determineActions()
+      
+      FileUtils.createTargetDirectoryIfRequired(ArgumentsAndActions.source, ArgumentsAndActions.target)
+      val listFiles = Lister.getSourceTargetFilePairs()      
       FileUtils.move(listFiles)
+      FileUtils.deleteSourceDirIfRequired()
     } else if (!BansheeWorker.bansheeDBFile.exists) { 
     	println("Banshee DB file does not exist. Expected to find it in " + BansheeWorker.bansheeDBFile.getCanonicalPath())
   	} else {
@@ -27,6 +31,23 @@ object App {
   }
 
 }
+
+/**
+ * This object tracks information about which optional actions need to be performed.  
+ */
+object ArgumentsAndActions {  
+  var deleteSourceDir = false
+  var source : File = null
+  var target : File = null
+  
+  def determineActions() = {
+    
+    if (source.isDirectory()) {
+      deleteSourceDir = true
+    }
+  }
+}
+
 
 object BansheeWorker {
   def bansheeDB = {
@@ -40,32 +61,28 @@ object BansheeWorker {
 
 object Lister {
   
-  def getSourceTargetFilePairs(args: Array[String]) = {
+  def getSourceTargetFilePairs() = {
 
-    val source = args(0)
-    val target = args(1)
-
-    val sources = getSources(source)
-    sourcesAndTargets(sources, target)
+    val sources = getSources(ArgumentsAndActions.source)
+    sourcesAndTargets(sources, ArgumentsAndActions.target)
   }
 
-  def getSources(source: String) = {
-    val sourceFile = new File(source)
-    if (!sourceFile.isDirectory()) {
-      List(sourceFile)
-    } else {
-      sourceFile.listFiles().toList;
+  protected def getSources(source: File) = {
+    
+    if (!source.isDirectory()) {
+      List(source)
+    } else {      
+      source.listFiles().toList;
     }
   }
 
-  def sourcesAndTargets(sources: List[File], target: String) = {
-    val targetFile = new File(target)
-    for (f <- sources) yield Pair(f, getTarget(f, targetFile))
+  protected def sourcesAndTargets(sources: List[File], target: File) = {    
+    for (sourceFile <- sources) yield Pair(sourceFile, getTarget(sourceFile, target))
   }
 
-  def getTarget(sourceFile: File, targetFile: File) = {
+  protected def getTarget(sourceFile: File, targetFile: File) = {
+    
     if (targetFile.isDirectory) {
-
       new File(targetFile.getCanonicalPath + File.separator + sourceFile.getName);
     } else {
       targetFile.getCanonicalFile
@@ -77,31 +94,32 @@ object Lister {
 object ArgumentValidator {
 
   def validates(args: Array[String]) = {
-
+   
+    
     if (args.size != 2) {
       println("Need 2 arguments")
       false
     } else {
+                 
+      ArgumentsAndActions.source = new File(args(0))
+      ArgumentsAndActions.target = new File(args(1))
 
-      val sourceFile = new File(args(0))
-      val targetFile = new File(args(1))
-
-      if (!(sourceFile.exists())) {
+      if (!(ArgumentsAndActions.source.exists())) {
 
         println("Source does not exist")
         false
 
-      } else if (targetFile.exists() && !targetFile.isDirectory()) {
+      } else if (ArgumentsAndActions.target.exists() && !ArgumentsAndActions.target.isDirectory()) {
 
         println("Target file exists")
         false
 
-      } else if (!sourceFile.isDirectory() && !targetFile.exists() && !targetFile.getAbsoluteFile().getParentFile().exists()) {
+      } else if (!ArgumentsAndActions.source.isDirectory() && !ArgumentsAndActions.target.exists() && !ArgumentsAndActions.target.getAbsoluteFile().getParentFile().exists()) {
 
         println("The directory for the file does not exist")
         false
 
-      } else if (sourceFile.isDirectory() && hasDirectories(sourceFile)) {
+      } else if (ArgumentsAndActions.source.isDirectory() && hasDirectories(ArgumentsAndActions.source)) {
 
         println("The source directory can only contain files but it contains subdirectories as well")
         false
@@ -118,6 +136,7 @@ object ArgumentValidator {
    * Check if the directory has subdirectories.
    */
   private def hasDirectories(sourceFile: File) = {
+    
     val dirs = for (f <- sourceFile.listFiles if (f.isDirectory)) yield f
 
     !dirs.isEmpty;
@@ -164,11 +183,18 @@ object SQLWorker {
 
 object FileUtils {
 
+  
+  def deleteSourceDirIfRequired() {
     
-  def getJavaURLEncodedURI(f:File) : String = {
+    if (ArgumentsAndActions.deleteSourceDir) {
+    	ArgumentsAndActions.source.delete()
+    }
+  }
     
-	  val name = f.getName()
-	  val parent = f.getParentFile()
+  protected def getJavaURLEncodedURI(file : File) : String = {
+    
+	  val name = file.getName()
+	  val parent = file.getParentFile()
 	  if (parent != null) {
 		  getJavaURLEncodedURI(parent) + "/" +  URLEncoder.encode(name, "utf-8")
 	  } else {
@@ -177,7 +203,7 @@ object FileUtils {
   }
  
   /**
-   * Banshee uses glib fucntions to encode URIs. These are a bit different from what 
+   * Banshee uses glib functions to encode URIs. These are a bit different from what 
    * java's native URLEncoder produces so we do the following process: <ul>
    * <li>encode the URL using URL encoder
    * <li>then unencode the allowed characters
@@ -192,23 +218,23 @@ object FileUtils {
    * g_escape_file_uri from glib 
    * https://github.com/zsx/glib/blob/e4a9f83312a8c7e4a540c937f04efab88199e181/glib/gconvert.c   
    */
-  val allowed = "!'()*-._~/&=:@+$,"
+  protected val allowed = "!'()*-._~/&=:@+$,"
   
-  def unencodeAllowedURICharacters(s : String) = {
+  protected def unencodeAllowedURICharacters(encodedString : String) = {
     
-    var str = s   
+    var unencodedString = encodedString   
     for (c <- allowed) {
       var dec = URLEncoder.encode(c.toString(), "utf-8")
-      str = str.replace(dec, c.toString())
+      unencodedString = unencodedString.replace(dec, c.toString())
     }
     
-    str.replace("+", "%20")
+    unencodedString.replace("+", "%20")
   } 
   
-  def create(args : Array[String]) {
+  def createTargetDirectoryIfRequired(sourceFile : File, targetFile : File) {
     
-      val sourceFile = new File(args(0))
-      val targetFile = new File(args(1))
+//      val sourceFile = new File(args(0))
+//      val targetFile = new File(args(1))
       
       if (sourceFile.isDirectory() && !targetFile.exists()) {
         targetFile.mkdir()
@@ -219,21 +245,17 @@ object FileUtils {
   def move(mapSourceTarget : List[Pair[File, File]]) {
       
       for (sourceTargetPair <- mapSourceTarget) {
+        
         print(sourceTargetPair._1.getAbsoluteFile)
         print(" -> ")
         println(sourceTargetPair._2.getAbsolutePath)
                       
-        val source = getBansheeLikeURI(sourceTargetPair._1)
-        val target = getBansheeLikeURI(sourceTargetPair._2)
-
-        /*
-        println("source uri: " + source)
-        println("target uri: " + target)
-        */
+        val sourceURI = getBansheeLikeURI(sourceTargetPair._1)
+        val targetURI = getBansheeLikeURI(sourceTargetPair._2)
           
-        SQLWorker.showFromDB(source)        
+        SQLWorker.showFromDB(sourceURI)        
         Files.copy(sourceTargetPair._1, sourceTargetPair._2)        
-        SQLWorker.updateLocation(source, target)
+        SQLWorker.updateLocation(sourceURI, targetURI)
         sourceTargetPair._1.delete()
       }
         
