@@ -5,8 +5,7 @@ This project lets user move a file or a directory and also updates the location 
 At the moment you can: 
 1. move a file from one location to another 
 2. move all files from a specified directory to another existing directory 
-3. move all files from a specified directory to a new directory 
+3. move all files from a specified directory to a new directory
 
 Known issues: 
-* the old directory does not get deleted automatically. 
 * does not support moving nested directories
