@@ -9,3 +9,30 @@ At the moment you can:
 
 Known issues: 
 * does not support moving nested directories
+
+
+-----------------------------------------------------------------------------------------
+
+Instructions that I have sent to the first user of this program:
+
+The program is written using Scala but you do not have to have Scala installed on your system to use the program (explanation below).
+
+The build system used is maven.
+
+So the prerequisites to build are:
+* install Open JDK (I am using V6)
+* install Maven (I am using version 2.21)
+
+Process:
+* go to the top level directory of the checkout git project (you have cloned it to your local driver, right?)
+* this directory contains pom.xml - that's the definition file for Maven
+* now execute a command: mvn package
+* the above command is going to download all the dependencies (Scala jar files, sqlite jar and a few others), then it will compile and package the program.
+* now go to the directory target/appassembler/bin
+* execute the musicmover.sh by invoking the following command: sh musicmover.sh
+
+WARNING AND DISCLAIMER!!! :) 
+1. Please make sure that you back up your file ~/.config/banshee-1/banshee.db
+2. I have used this program myself several times and it worked for me well but I have upgraded to Banshee 2.2.1 and it seems to be doing job of monitoring the files moves from one directory to another quite well for me so I stopped usaing this program myself.
+3. You are the first user apart from me that I am aware of, so good luck!
+
