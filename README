@@ -24,7 +24,7 @@ So the prerequisites to build are:
 * install Maven (I am using version 2.21)
 
 Process:
-* go to the top level directory of the checkout git project (you have cloned it to your local driver, right?)
+* go to the top level directory of the checkout git project (you have cloned it to your local drive, right?)
 * this directory contains pom.xml - that's the definition file for Maven
 * now execute a command: mvn package
 * the above command is going to download all the dependencies (Scala jar files, sqlite jar and a few others), then it will compile and package the program.
@@ -33,6 +33,6 @@ Process:
 
 WARNING AND DISCLAIMER!!! :) 
 1. Please make sure that you back up your file ~/.config/banshee-1/banshee.db
-2. I have used this program myself several times and it worked for me well but I have upgraded to Banshee 2.2.1 and it seems to be doing job of monitoring the files moves from one directory to another quite well for me so I stopped usaing this program myself.
+2. I have used this program myself several times and it worked for me well but I have upgraded to Banshee 2.2.1 and it seems to be doing job of monitoring the files moves from one directory to another quite well for me so I stopped using this program myself.
 3. You are the first user apart from me that I am aware of, so good luck!
 
